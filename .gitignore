@@ -1,0 +1,45 @@
+# 🗑 Ignorar node_modules y archivos de construcción
+node_modules/
+dist/
+build/
+uploads/
+tmp/
+.cache/
+
+# 📂 Ignorar logs y depuración
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ⚙️ Ignorar archivos de configuración local y entornos
+.env
+.env.*.local
+!.env.example  # Si tienes un archivo de ejemplo de variables de entorno, mantenlo en el repo
+
+# 🔧 Ignorar configuración de editores y sistemas operativos
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 🚀 Ignorar archivos de despliegue temporales
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnp
+.pnp.js
+
+# 🚧 Ignorar archivos específicos de Railway
+.railway/
+
+# 🏗 Ignorar archivos de dependencias compiladas en local
+package-lock.json
+yarn.lock
