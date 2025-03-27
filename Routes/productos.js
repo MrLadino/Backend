@@ -12,27 +12,24 @@ router.delete("/categorias/:id", verifyToken, productosController.deleteCategori
 // Rutas para manejo de archivos Excel
 router.get("/export-excel", verifyToken, productosController.exportExcel);
 
-// ➤ Evitar que GET /import-excel caiga en “/:id”
+// Evitar que GET /import-excel caiga en rutas dinámicas
 router.get("/import-excel", verifyToken, (req, res) => {
   return res.status(405).json({
     message: "Método GET no permitido. Usa POST con FormData para importar Excel."
   });
 });
-
 // Ruta POST real para importar Excel
 router.post("/import-excel", verifyToken, productosController.importExcel);
 
 /*
-  IMPORTANTE: Para que "/actualizar-stock" no sea interceptado por "/:id",
-  definimos estas rutas antes de las dinámicas.
+  Rutas especiales para "caja" (actualizar stock y búsqueda por código)
+  Se definen antes de las rutas dinámicas para evitar conflictos.
 */
-
-// NUEVAS RUTAS PARA LA CAJA
 router.get("/buscar/:codigo", verifyToken, productosController.getProductoByCodigo);
 router.put("/actualizar-stock", verifyToken, productosController.actualizarStock);
 
 /*
-  Rutas dinámicas: se ponen al final para evitar conflictos
+  Rutas dinámicas para CRUD de productos (colocadas al final para evitar colisiones)
 */
 router.get("/", verifyToken, productosController.getProductos);
 router.get("/:id", verifyToken, productosController.getProductoById);

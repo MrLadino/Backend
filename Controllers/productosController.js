@@ -1,10 +1,11 @@
+// Backend/Controllers/productosController.js
+
 const db = require("../Config/db");
 const ExcelJS = require("exceljs");
 const multer = require("multer");
 
-/* =================== AYUDA A OCULTAR TOKENS EN LOGS (ejemplo) =================== */
-// Si en algún punto quisieras loguear el token, en lugar de console.log(token),
-// harías: console.log(token ? token.slice(0, 5) + "...(hidden)" : "No token");
+/* =================== AYUDA A OCULTAR TOKENS EN LOGS =================== */
+// Ejemplo: console.log(token ? token.slice(0, 5) + "...(hidden)" : "No token");
 
 /* Generar un ID corto (5 dígitos) */
 function generarIdCorto() {
@@ -13,6 +14,7 @@ function generarIdCorto() {
 
 // =================== CATEGORÍAS ===================
 
+// Obtener categorías
 exports.getCategorias = async (req, res) => {
   try {
     // Si el usuario autenticado no es admin, se muestran las categorías del admin (user_id = 30)
@@ -23,10 +25,12 @@ exports.getCategorias = async (req, res) => {
     );
     return res.json(categorias);
   } catch (error) {
+    console.error("Error al obtener categorías:", error);
     return res.status(500).json({ message: "Error al obtener categorías", error });
   }
 };
 
+// Crear categoría
 exports.createCategoria = async (req, res) => {
   const userId = req.user.user_id;
   const { name } = req.body;
@@ -40,10 +44,12 @@ exports.createCategoria = async (req, res) => {
     );
     return res.json({ message: "Categoría creada con éxito.", id: result.insertId, name });
   } catch (error) {
+    console.error("Error al crear categoría:", error);
     return res.status(500).json({ message: "Error al crear categoría", error });
   }
 };
 
+// Actualizar categoría
 exports.updateCategoria = async (req, res) => {
   const userId = req.user.user_id;
   const { id } = req.params;
@@ -61,14 +67,17 @@ exports.updateCategoria = async (req, res) => {
     }
     return res.json({ message: "Categoría actualizada con éxito." });
   } catch (error) {
+    console.error("Error al actualizar categoría:", error);
     return res.status(500).json({ message: "Error al actualizar categoría", error });
   }
 };
 
+// Eliminar categoría
 exports.deleteCategoria = async (req, res) => {
   const userId = req.user.user_id;
   const { id } = req.params;
   try {
+    // Verificar si existen productos asociados a la categoría
     const [productos] = await db.query(
       "SELECT id FROM productos WHERE categoria_id = ? AND user_id = ?",
       [id, userId]
@@ -79,11 +88,14 @@ exports.deleteCategoria = async (req, res) => {
     await db.query("DELETE FROM product_categories WHERE category_id = ? AND user_id = ?", [id, userId]);
     return res.json({ message: "Categoría eliminada con éxito." });
   } catch (error) {
+    console.error("Error al eliminar categoría:", error);
     return res.status(500).json({ message: "Error al eliminar categoría", error });
   }
 };
 
 // =================== PRODUCTOS ===================
+
+// Crear producto
 exports.createProducto = async (req, res) => {
   let { sku, nombre, descripcion, imagen, precio, stock, categoria, activo, codigo_barras } = req.body;
   try {
@@ -112,10 +124,12 @@ exports.createProducto = async (req, res) => {
 
     return res.json({ message: "Producto creado con éxito." });
   } catch (error) {
+    console.error("Error al crear producto:", error);
     return res.status(500).json({ message: "Error al crear producto", error });
   }
 };
 
+// Obtener productos
 exports.getProductos = async (req, res) => {
   try {
     // Si el usuario autenticado no es admin, se obtienen los productos del admin (user_id = 30)
@@ -123,13 +137,15 @@ exports.getProductos = async (req, res) => {
     const [productos] = await db.query("SELECT * FROM productos WHERE user_id = ?", [targetUserId]);
     return res.json(productos);
   } catch (error) {
+    console.error("Error al obtener productos:", error);
     return res.status(500).json({ message: "Error al obtener productos", error });
   }
 };
 
+// Obtener producto por ID
 exports.getProductoById = async (req, res) => {
   const { id } = req.params;
-  // Si el usuario autenticado no es admin, se busca el producto en los del admin (user_id = 30)
+  // Si el usuario autenticado no es admin, se busca el producto del admin (user_id = 30)
   const targetUserId = req.user.role !== "admin" ? 30 : req.user.user_id;
   try {
     const [[producto]] = await db.query("SELECT * FROM productos WHERE id = ? AND user_id = ?", [id, targetUserId]);
@@ -138,10 +154,12 @@ exports.getProductoById = async (req, res) => {
     }
     return res.json(producto);
   } catch (error) {
+    console.error("Error al obtener producto:", error);
     return res.status(500).json({ message: "Error al obtener producto", error });
   }
 };
 
+// Actualizar producto
 exports.updateProducto = async (req, res) => {
   const { id } = req.params;
   const userId = req.user.user_id;
@@ -176,10 +194,12 @@ exports.updateProducto = async (req, res) => {
     }
     return res.json({ message: "Producto actualizado correctamente." });
   } catch (error) {
+    console.error("Error al actualizar producto:", error);
     return res.status(500).json({ message: "Error al actualizar producto", error });
   }
 };
 
+// Eliminar producto
 exports.deleteProducto = async (req, res) => {
   const { id } = req.params;
   const userId = req.user.user_id;
@@ -190,6 +210,7 @@ exports.deleteProducto = async (req, res) => {
     }
     return res.json({ message: "Producto eliminado correctamente." });
   } catch (error) {
+    console.error("Error al eliminar producto:", error);
     return res.status(500).json({ message: "Error al eliminar producto", error });
   }
 };
@@ -241,6 +262,7 @@ exports.exportExcel = async (req, res) => {
     const buffer = await workbook.xlsx.writeBuffer();
     return res.send(buffer);
   } catch (error) {
+    console.error("Error al exportar Excel:", error);
     return res.status(500).json({ message: "Error al exportar Excel", error });
   }
 };
@@ -284,7 +306,7 @@ exports.importExcel = (req, res) => {
           return;
         }
         console.log(`Fila ${rowNumber}:`, row.values);
-        // Se espera el orden: [2] = SKU, [3] = Nombre, [4] = Descripción, [5] = Codigo Qr, [6] = Stock, [7] = Precio
+        // Se espera el orden: [2] = SKU, [3] = Nombre, [4] = Descripción, [5] = Código de Barras, [6] = Stock, [7] = Precio
         const sku = row.values[2] ? String(row.values[2]).trim() : "";
         const nombre = row.values[3] ? String(row.values[3]).trim() : "";
         const descripcion = row.values[4] ? String(row.values[4]).trim() : "";
@@ -344,6 +366,7 @@ exports.getProductoByCodigo = async (req, res) => {
     }
     return res.json(producto);
   } catch (error) {
+    console.error("Error al buscar producto por código:", error);
     return res.status(500).json({ message: "Error al buscar producto por código", error });
   }
 };

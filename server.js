@@ -3,59 +3,43 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
+const helmet = require("helmet");
 const db = require("./Config/db");
 const path = require("path");
 const multer = require("multer");
 const fs = require("fs");
 const { verifyToken, verifyAdmin } = require("./Middlewares/authMiddleware");
 
+// Cargar variables de entorno (se usa el .env adecuado para el entorno de despliegue)
 dotenv.config();
 
 const app = express();
 
-// Middlewares de parsing
+// Agregar Helmet para mejorar la seguridad
+app.use(helmet());
+
+// Configurar middlewares para parsear JSON y urlencoded
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Middleware global para CORS
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:5173");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  if (req.method === "OPTIONS") {
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
-    return res.status(200).json({});
-  }
-  next();
-});
-
+// Configuración de CORS: se utiliza FRONTEND_URL del .env o localhost para desarrollo
+const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: frontendUrl,
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// Configuración para servir archivos estáticos (uploads)
+// Configurar la carpeta de uploads y servir archivos estáticos
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
+app.use("/uploads", express.static(uploadDir));
 
-// Servir la carpeta /uploads como estático
-app.use(
-  "/uploads",
-  (req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "http://localhost:5173");
-    next();
-  },
-  express.static(uploadDir)
-);
-
-// Configuración de Multer para manejo de archivos (imágenes, etc.)
+// Configuración de Multer para manejo de archivos (imágenes)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -65,7 +49,8 @@ const storage = multer.diskStorage({
   },
 });
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("image/")) {
+  const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+  if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
     cb(new Error("Formato de archivo no permitido para perfil"), false);
@@ -73,15 +58,13 @@ const fileFilter = (req, file, cb) => {
 };
 const upload = multer({ storage, fileFilter });
 
-// IMPORTAR rutas de usuario (signup, login, etc.)
+// Importar rutas
 const userRoutes = require("./Routes/user");
 app.use("/api", userRoutes);
 
-// IMPORTAR y montar las rutas de autenticación (incluye validate-password)
 const authRoutes = require("./Routes/auth");
 app.use("/api/auth", authRoutes);
 
-// Rutas adicionales (publicidad, productos, etc.)
 const advertisingRoutes = require("./Routes/advertising");
 app.use("/api/advertising", advertisingRoutes);
 
@@ -128,16 +111,13 @@ app.put("/api/profile", verifyToken, async (req, res) => {
   const userId = req.user.user_id;
   try {
     await db.query(
-      `UPDATE users SET name = ?, email = ?, description = ?, phone = ?, profile_photo = ?
-       WHERE user_id = ?`,
+      `UPDATE users SET name = ?, email = ?, description = ?, phone = ?, profile_photo = ? WHERE user_id = ?`,
       [name, email, description, phone, profile_photo, userId]
     );
     const [existingCompany] = await db.query("SELECT * FROM companies WHERE user_id = ?", [userId]);
     if (existingCompany.length > 0) {
       await db.query(
-        `UPDATE companies 
-         SET name = ?, description = ?, location = ?, phone = ?, photo = ?
-         WHERE user_id = ?`,
+        `UPDATE companies SET name = ?, description = ?, location = ?, phone = ?, photo = ? WHERE user_id = ?`,
         [companyName, companyDescription, companyLocation, companyPhone, companyPhoto, userId]
       );
     } else {
@@ -154,12 +134,14 @@ app.put("/api/profile", verifyToken, async (req, res) => {
   }
 });
 
-// Ejemplo de subir archivos/imágenes (con token)
+// Ruta para subir archivos/imágenes (con token)
+// Se utiliza BACKEND_URL desde el .env o localhost por defecto para construir la URL de la imagen
 app.post("/api/upload", verifyToken, upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No se subió ninguna imagen." });
   }
-  const imageUrl = `http://localhost:5000/uploads/${req.file.filename}`;
+  const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+  const imageUrl = `${backendUrl}/uploads/${req.file.filename}`;
   const userId = req.user.user_id;
   try {
     await db.query("UPDATE users SET profile_photo = ? WHERE user_id = ?", [imageUrl, userId]);
@@ -182,16 +164,16 @@ app.get("/api/users", verifyToken, verifyAdmin, async (req, res) => {
 });
 
 app.delete("/api/users/:id", verifyToken, verifyAdmin, async (req, res) => {
-  const userId = req.params.id;
-  if (req.user.user_id == userId) {
+  const userIdParam = req.params.id;
+  if (req.user.user_id == userIdParam) {
     return res.status(403).json({ message: "No puedes eliminar tu propia cuenta." });
   }
   try {
-    const [user] = await db.query("SELECT * FROM users WHERE user_id = ?", [userId]);
+    const [user] = await db.query("SELECT * FROM users WHERE user_id = ?", [userIdParam]);
     if (user.length === 0) {
       return res.status(404).json({ message: "Usuario no encontrado." });
     }
-    await db.query("DELETE FROM users WHERE user_id = ?", [userId]);
+    await db.query("DELETE FROM users WHERE user_id = ?", [userIdParam]);
     res.status(200).json({ message: "Usuario eliminado exitosamente." });
   } catch (error) {
     console.error("Error al eliminar usuario:", error);
@@ -199,8 +181,18 @@ app.delete("/api/users/:id", verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
+// Manejo global de excepciones y rechazos no manejados
+process.on("uncaughtException", (err) => {
+  console.error("Excepción no manejada:", err);
+});
+process.on("unhandledRejection", (reason, promise) => {
+  console.error("Promesa rechazada sin manejar:", reason);
+});
+
 // Iniciar el servidor
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Servidor corriendo en el puerto ${PORT}`);
 });
+
+module.exports = app;

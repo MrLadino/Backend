@@ -1,24 +1,28 @@
+// Backend/Middlewares/authMiddleware.js
+
 const jwt = require("jsonwebtoken");
-const dotenv = require("dotenv");
-dotenv.config();
+
+// Se asume que dotenv ya se ha cargado en el punto de entrada principal (server.js)
+// Si es necesario, se puede volver a cargar aquí, pero no es lo ideal
 
 const verifyToken = (req, res, next) => {
   try {
     let token = req.header("Authorization") || req.query.token;
-    console.log("🔍 Token recibido en backend:", token ? token.slice(0, 5) + "...(hidden)" : "No token");
+    console.log("🔍 Token recibido:", token ? token.slice(0, 5) + "...(hidden)" : "No token");
 
     if (!token) {
       return res.status(401).json({ message: "Acceso denegado, token requerido." });
     }
 
+    // Eliminar prefijo "Bearer " si existe
     if (token.startsWith("Bearer ")) {
       token = token.slice(7).trim();
     }
 
-    console.log("🔍 Token después de limpiar 'Bearer':", token ? token.slice(0, 5) + "...(hidden)" : "No token");
+    console.log("🔍 Token limpio:", token ? token.slice(0, 5) + "...(hidden)" : "No token");
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded.user_id) {
+    if (!decoded || !decoded.user_id) {
       return res.status(401).json({ message: "Token inválido: Falta 'user_id' en el payload." });
     }
 
@@ -38,10 +42,9 @@ const verifyToken = (req, res, next) => {
 
 const verifyAdmin = (req, res, next) => {
   if (req.user && req.user.role === "admin") {
-    next();
-  } else {
-    return res.status(403).json({ message: "Acceso denegado: Solo administradores pueden acceder a este recurso." });
+    return next();
   }
+  return res.status(403).json({ message: "Acceso denegado: Solo administradores pueden acceder a este recurso." });
 };
 
 module.exports = { verifyToken, verifyAdmin };

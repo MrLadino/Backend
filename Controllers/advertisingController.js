@@ -1,7 +1,11 @@
 // Backend/Controllers/advertisingController.js
+
 const db = require("../Config/db");
 const fs = require("fs");
 const path = require("path");
+
+// Función auxiliar para obtener la URL base del backend
+const getBackendUrl = () => process.env.BACKEND_URL || "http://localhost:5000";
 
 // GET /api/advertising
 // Lista todas las categorías de publicidad con sus archivos.
@@ -151,8 +155,9 @@ exports.uploadFiles = async (req, res) => {
     return res.status(400).json({ message: "No se subió ningún archivo o los archivos no son válidos." });
   }
   try {
+    const backendUrl = getBackendUrl();
     const insertPromises = req.files.map((file) => {
-      const fileUrl = `http://localhost:5000/uploads/${file.filename}`;
+      const fileUrl = `${backendUrl}/uploads/${file.filename}`;
       const fileType = file.mimetype.startsWith("image") ? "image" : "video";
       return db.query(
         "INSERT INTO advertising_files (category_id, file_name, file_url, file_type) VALUES (?, ?, ?, ?)",

@@ -7,13 +7,13 @@ const multer = require("multer");
 const advertisingController = require("../Controllers/advertisingController");
 const { verifyToken } = require("../Middlewares/authMiddleware");
 
-// Configurar la carpeta de subida para publicidad
-// La carpeta "uploads" está en la raíz de Backend
+// Configurar la carpeta de subida para publicidad (uploads)
 const uploadDir = path.join(__dirname, "../uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Configuración de almacenamiento de multer para archivos
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadDir);
@@ -24,6 +24,8 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Rutas para publicidad
+
 // GET: Obtener todas las categorías con sus archivos
 router.get("/", verifyToken, advertisingController.getAdvertising);
 
@@ -33,7 +35,7 @@ router.post("/category", verifyToken, advertisingController.createCategory);
 // PUT: Editar categoría
 router.put("/category/:id", verifyToken, advertisingController.updateCategory);
 
-// DELETE: Eliminar categoría (y sus archivos)
+// DELETE: Eliminar categoría y sus archivos
 router.delete("/category/:id", verifyToken, advertisingController.deleteCategory);
 
 // POST: Subir múltiples archivos (imágenes/videos)

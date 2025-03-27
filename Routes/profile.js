@@ -2,17 +2,21 @@ import express from 'express';
 import { verifyToken } from '../Middlewares/authMiddleware';
 import db from '../Config/db';
 import { updateProfile } from '../Controllers/updateProfile';
-const upload = require("../Middlewares/uploadMiddleware");
+import upload from "../Middlewares/uploadMiddleware";
 
 const router = express.Router();
 
+// Obtener la URL base del backend a partir de la variable de entorno o localhost por defecto
+const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+
+// Ruta para subir imagen de perfil
 router.post("/upload", upload.single("file"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No se pudo subir la imagen" });
   }
-  res.json({ fileUrl: `http://localhost:5000/uploads/${req.file.filename}` });
+  const fileUrl = `${backendUrl}/uploads/${req.file.filename}`;
+  return res.json({ fileUrl });
 });
-
 
 /**
  * 📌 Obtener perfil del usuario autenticado
@@ -25,8 +29,7 @@ router.get('/profile', verifyToken, async (req, res) => {
 
     // Consultar datos del usuario
     const [userRows] = await db.query(
-      `SELECT user_id, name, email, phone, description, profile_photo, 
-              companyName, companyDescription, companyLocation, companyPhone 
+      `SELECT user_id, name, email, phone, description, profile_photo
        FROM users 
        WHERE user_id = ?`,
       [userId]
@@ -63,10 +66,10 @@ router.get('/profile', verifyToken, async (req, res) => {
     };
 
     console.log("✅ Perfil obtenido:", userData);
-    res.json(userData);
+    return res.json(userData);
   } catch (error) {
     console.error("❌ Error al obtener el perfil:", error);
-    res.status(500).json({ message: 'Error al obtener los datos del perfil' });
+    return res.status(500).json({ message: 'Error al obtener los datos del perfil' });
   }
 });
 
