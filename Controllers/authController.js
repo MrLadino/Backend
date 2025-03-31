@@ -1,10 +1,9 @@
-// Backend/Controllers/authController.js
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import db from "../Config/db.js";
-import dotenv from "dotenv";
-import { sendMail } from "../utils/emailSender.js";
-import crypto from "crypto";
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const db = require("../Config/db");
+const dotenv = require("dotenv");
+const { sendMail } = require("../utils/emailSender");
+const crypto = require("crypto");
 
 dotenv.config();
 const { JWT_SECRET = "por_favor_cambia_este_secreto" } = process.env;
@@ -13,7 +12,7 @@ const { JWT_SECRET = "por_favor_cambia_este_secreto" } = process.env;
  * OLVIDÉ MI CONTRASEÑA
  * POST /api/auth/forgot-password
  */
-export const forgotPassword = async (req, res) => {
+const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
     if (!email) {
@@ -59,7 +58,7 @@ export const forgotPassword = async (req, res) => {
  * RESETEAR CONTRASEÑA
  * POST /api/auth/reset-password
  */
-export const resetPassword = async (req, res) => {
+const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
     if (!token || !newPassword) {
@@ -94,7 +93,7 @@ export const resetPassword = async (req, res) => {
  * VERIFICAR CONTRASEÑA
  * POST /api/auth/validate-password
  */
-export const verifyPassword = async (req, res) => {
+const verifyPassword = async (req, res) => {
   try {
     const { password } = req.body;
     if (!password) {
@@ -116,4 +115,10 @@ export const verifyPassword = async (req, res) => {
     console.error("Error en verifyPassword:", error);
     return res.status(500).json({ message: "Error en el servidor." });
   }
+};
+
+module.exports = {
+  forgotPassword,
+  resetPassword,
+  verifyPassword,
 };
