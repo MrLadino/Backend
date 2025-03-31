@@ -118,7 +118,7 @@ router.get("/", verifyToken, verifyAdmin, async (req, res) => {
 router.put("/update-profile", verifyToken, async (req, res) => {
   const { name, email, phone, description, profile_photo, company_id, company_name, companyLocation, companyPhone } = req.body;
   
-  // Se compara el id del token con el enviado en el cuerpo, si existe, o se utiliza el del token
+  // Se usa el id del token para identificar al usuario
   const userId = req.user.user_id;
 
   // Solo el propio usuario o un admin pueden actualizar el perfil
@@ -127,7 +127,7 @@ router.put("/update-profile", verifyToken, async (req, res) => {
   }
 
   try {
-    // Actualizar los datos del usuario
+    // Actualizar datos del usuario
     await db.query(
       `UPDATE users 
        SET name = COALESCE(?, name),
@@ -139,7 +139,7 @@ router.put("/update-profile", verifyToken, async (req, res) => {
       [name, email, phone, description, profile_photo, userId]
     );
 
-    // Actualizar datos de la empresa si se envían
+    // Actualizar datos de la empresa, si se envían
     if (company_id && company_name) {
       await db.query(
         `UPDATE companies 
