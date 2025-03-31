@@ -1,10 +1,10 @@
 const express = require("express");
-const bcrypt = require("bcrypt");
+// Se corrige la importación: se utiliza bcryptjs en lugar de bcrypt
+const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const db = require("../Config/db");
 const { verifyToken, verifyAdmin } = require("../Middlewares/authMiddleware");
 
-// Se asume que dotenv ya se cargó en el punto de entrada (server.js)
 const router = express.Router();
 const ADMIN_CODE = process.env.ADMIN_CODE || "TicUser001";
 
