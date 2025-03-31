@@ -30,6 +30,11 @@ app.use(
   })
 );
 
+// (Opcional) Endpoint de Health Check para que Railway verifique la salud del contenedor
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK" });
+});
+
 // Configurar la carpeta de uploads y servir archivos estáticos
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
@@ -60,7 +65,7 @@ const upload = multer({ storage, fileFilter });
 const userRoutes = require("./Routes/user");         // Rutas de registro, login, usuario
 app.use("/api", userRoutes);
 
-const authRoutes = require("./Routes/auth");         // Rutas de autenticación (registro, login, forgot/reset, validate)
+const authRoutes = require("./Routes/auth");         // Rutas de autenticación (signup, login, forgot/reset, validate)
 app.use("/api/auth", authRoutes);
 
 const advertisingRoutes = require("./Routes/advertising");
@@ -69,7 +74,7 @@ app.use("/api/advertising", advertisingRoutes);
 const productosRoutes = require("./Routes/productos");
 app.use("/api/productos", productosRoutes);
 
-// Ruta para perfil de usuario (GET y PUT)
+// Rutas para perfil de usuario (GET y PUT)
 app.get("/api/profile", verifyToken, async (req, res) => {
   try {
     const userId = req.user.user_id;
