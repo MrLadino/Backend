@@ -10,28 +10,40 @@ const { JWT_SECRET = "por_favor_cambia_este_secreto" } = process.env;
 
 /**
  * REGISTRAR UN NUEVO USUARIO
- * POST /api/auth/signup
+ * POST /api/signup
  */
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
+    const { name, email, password, role, adminPassword } = req.body;
+    if (!name || !email || !password || !role) {
       return res.status(400).json({ message: "Todos los campos son obligatorios." });
     }
+    if (password.length < 6) {
+      return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres." });
+    }
+    // Si el rol es admin, validar la contraseña de admin
+    if (role === "admin") {
+      const ADMIN_CODE = process.env.ADMIN_CODE || "TicUser001";
+      if (!adminPassword || adminPassword.trim() !== ADMIN_CODE.trim()) {
+        return res.status(400).json({ message: "Contraseña de Admin incorrecta." });
+      }
+    }
 
-    const [existingUser] = await db.query("SELECT email FROM users WHERE email = ?", [email]);
-    if (existingUser.length > 0) {
+    // Verificar si el usuario ya existe
+    const [[existingUser]] = await db.query("SELECT email FROM users WHERE email = ?", [email]);
+    if (existingUser) {
       return res.status(400).json({ message: "El correo ya está registrado." });
     }
 
+    // Hashear la contraseña y crear el usuario
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await db.query(
-      "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-      [name, email, hashedPassword]
+      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+      [name, email, hashedPassword, role]
     );
 
     const userId = result.insertId;
-    const token = jwt.sign({ user_id: userId, email }, JWT_SECRET, { expiresIn: "24h" });
+    const token = jwt.sign({ user_id: userId, email, role }, JWT_SECRET, { expiresIn: "24h" });
 
     return res.status(201).json({
       message: "Usuario registrado exitosamente.",
@@ -45,8 +57,50 @@ const registerUser = async (req, res) => {
 };
 
 /**
+ * INICIAR SESIÓN
+ * POST /api/login
+ */
+const loginUser = async (req, res) => {
+  try {
+    const { email, password, role, adminPassword } = req.body;
+    const [[user]] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+    if (!user) {
+      return res.status(400).json({ message: "Usuario no encontrado." });
+    }
+    if (user.role !== role) {
+      return res.status(403).json({ message: `Rol incorrecto. Tu cuenta está registrada como ${user.role}` });
+    }
+    if (role === "admin") {
+      const ADMIN_CODE = process.env.ADMIN_CODE || "TicUser001";
+      if (!adminPassword || adminPassword.trim() !== ADMIN_CODE.trim()) {
+        return res.status(400).json({ message: "Contraseña de Admin incorrecta." });
+      }
+    }
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) {
+      return res.status(400).json({ message: "Contraseña incorrecta." });
+    }
+
+    const token = jwt.sign(
+      { user_id: user.user_id, email: user.email, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    return res.status(200).json({
+      message: "Login exitoso",
+      token,
+      user: { user_id: user.user_id, name: user.name, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    console.error("Error en loginUser:", error);
+    return res.status(500).json({ message: "Error en el servidor." });
+  }
+};
+
+/**
  * OLVIDÉ MI CONTRASEÑA
- * POST /api/auth/forgot-password
+ * POST /api/forgot-password
  */
 const forgotPassword = async (req, res) => {
   try {
@@ -70,7 +124,8 @@ const forgotPassword = async (req, res) => {
       expires,
     ]);
 
-    const resetLink = `http://localhost:5173/reset-password?token=${token}`;
+    // Actualizar resetLink para producción (apunta al frontend desplegado)
+    const resetLink = `https://mrladino.github.io/Frontend/reset-password?token=${token}`;
     await sendMail({
       to: email,
       subject: "Restablecer Contraseña - TIC Americas",
@@ -92,7 +147,7 @@ const forgotPassword = async (req, res) => {
 
 /**
  * RESETEAR CONTRASEÑA
- * POST /api/auth/reset-password
+ * POST /api/reset-password
  */
 const resetPassword = async (req, res) => {
   try {
@@ -127,7 +182,7 @@ const resetPassword = async (req, res) => {
 
 /**
  * VERIFICAR CONTRASEÑA
- * POST /api/auth/validate-password
+ * POST /api/validate-password
  */
 const verifyPassword = async (req, res) => {
   try {
@@ -155,6 +210,7 @@ const verifyPassword = async (req, res) => {
 
 module.exports = {
   registerUser,
+  loginUser,
   forgotPassword,
   resetPassword,
   verifyPassword,

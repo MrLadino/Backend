@@ -57,10 +57,10 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Importar rutas
-const userRoutes = require("./Routes/user");
+const userRoutes = require("./Routes/user");         // Rutas de registro, login, usuario
 app.use("/api", userRoutes);
 
-const authRoutes = require("./Routes/auth");
+const authRoutes = require("./Routes/auth");         // Rutas de autenticación (registro, login, forgot/reset, validate)
 app.use("/api/auth", authRoutes);
 
 const advertisingRoutes = require("./Routes/advertising");
@@ -69,7 +69,7 @@ app.use("/api/advertising", advertisingRoutes);
 const productosRoutes = require("./Routes/productos");
 app.use("/api/productos", productosRoutes);
 
-// Rutas para perfil de usuario
+// Ruta para perfil de usuario (GET y PUT)
 app.get("/api/profile", verifyToken, async (req, res) => {
   try {
     const userId = req.user.user_id;
