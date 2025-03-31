@@ -9,6 +9,42 @@ dotenv.config();
 const { JWT_SECRET = "por_favor_cambia_este_secreto" } = process.env;
 
 /**
+ * REGISTRAR UN NUEVO USUARIO
+ * POST /api/auth/signup
+ */
+const registerUser = async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Todos los campos son obligatorios." });
+    }
+
+    const [existingUser] = await db.query("SELECT email FROM users WHERE email = ?", [email]);
+    if (existingUser.length > 0) {
+      return res.status(400).json({ message: "El correo ya está registrado." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const [result] = await db.query(
+      "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
+      [name, email, hashedPassword]
+    );
+
+    const userId = result.insertId;
+    const token = jwt.sign({ user_id: userId, email }, JWT_SECRET, { expiresIn: "24h" });
+
+    return res.status(201).json({
+      message: "Usuario registrado exitosamente.",
+      token,
+      user: { user_id: userId, name, email },
+    });
+  } catch (error) {
+    console.error("Error en registerUser:", error);
+    return res.status(500).json({ message: "Error en el servidor." });
+  }
+};
+
+/**
  * OLVIDÉ MI CONTRASEÑA
  * POST /api/auth/forgot-password
  */
@@ -118,6 +154,7 @@ const verifyPassword = async (req, res) => {
 };
 
 module.exports = {
+  registerUser,
   forgotPassword,
   resetPassword,
   verifyPassword,

@@ -4,6 +4,9 @@ const router = express.Router();
 const { verifyToken } = require("../Middlewares/authMiddleware");
 const authController = require("../Controllers/authController");
 
+// POST: Registrar un nuevo usuario
+router.post("/signup", authController.registerUser);
+
 // POST: Enviar correo para resetear contraseña
 router.post("/forgot-password", authController.forgotPassword);
 
