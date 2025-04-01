@@ -20,7 +20,7 @@ app.use(helmet());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Configuración de CORS: usar FRONTEND_URL del .env o localhost para desarrollo
+// Configuración de CORS: se utiliza FRONTEND_URL del .env o localhost para desarrollo
 const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 app.use(
   cors({
@@ -62,7 +62,7 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Importar rutas
-const authRoutes = require("./Routes/auth");
+const authRoutes = require("./Routes/auth"); // Autenticación centralizada
 app.use("/api/auth", authRoutes);
 
 const userRoutes = require("./Routes/user");
@@ -114,13 +114,17 @@ app.put("/api/profile", verifyToken, async (req, res) => {
   const userId = req.user.user_id;
   try {
     await db.query(
-      `UPDATE users SET name = ?, email = ?, description = ?, phone = ?, profile_photo = ? WHERE user_id = ?`,
+      `UPDATE users 
+       SET name = ?, email = ?, description = ?, phone = ?, profile_photo = ? 
+       WHERE user_id = ?`,
       [name, email, description, phone, profile_photo, userId]
     );
     const [existingCompany] = await db.query("SELECT * FROM companies WHERE user_id = ?", [userId]);
     if (existingCompany.length > 0) {
       await db.query(
-        `UPDATE companies SET name = ?, description = ?, location = ?, phone = ?, photo = ? WHERE user_id = ?`,
+        `UPDATE companies 
+         SET name = ?, description = ?, location = ?, phone = ?, photo = ? 
+         WHERE user_id = ?`,
         [companyName, companyDescription, companyLocation, companyPhone, companyPhoto, userId]
       );
     } else {
@@ -138,6 +142,7 @@ app.put("/api/profile", verifyToken, async (req, res) => {
 });
 
 // Ruta para subir archivos/imágenes (con token)
+// Se utiliza BACKEND_URL desde el .env o se usa la URL por defecto para construir la URL de la imagen
 app.post("/api/upload", verifyToken, upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No se subió ninguna imagen." });

@@ -21,7 +21,6 @@ const registerUser = async (req, res) => {
     if (password.length < 6) {
       return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres." });
     }
-    // Si el rol es admin, validar la contraseña de admin
     if (role === "admin") {
       const ADMIN_CODE = process.env.ADMIN_CODE || "TicUser001";
       if (!adminPassword || adminPassword.trim() !== ADMIN_CODE.trim()) {
