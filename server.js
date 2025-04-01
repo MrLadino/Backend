@@ -62,10 +62,10 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Importar rutas
-const authRoutes = require("./Routes/auth"); // Autenticación centralizada
+const authRoutes = require("./Routes/auth"); // Rutas de autenticación (signup, login, forgot/reset, validate)
 app.use("/api/auth", authRoutes);
 
-const userRoutes = require("./Routes/user");
+const userRoutes = require("./Routes/user"); // Rutas de usuario (actualización de perfil, eliminar usuario, etc.)
 app.use("/api", userRoutes);
 
 const advertisingRoutes = require("./Routes/advertising");
@@ -142,12 +142,11 @@ app.put("/api/profile", verifyToken, async (req, res) => {
 });
 
 // Ruta para subir archivos/imágenes (con token)
-// Se utiliza BACKEND_URL desde el .env o se usa la URL por defecto para construir la URL de la imagen
 app.post("/api/upload", verifyToken, upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No se subió ninguna imagen." });
   }
-  const backendUrl = process.env.BACKEND_URL || "https://backend-production-18aa.up.railway.app";
+  const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
   const imageUrl = `${backendUrl}/uploads/${req.file.filename}`;
   const userId = req.user.user_id;
   try {
