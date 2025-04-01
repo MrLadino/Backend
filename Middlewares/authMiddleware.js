@@ -1,9 +1,6 @@
-// Backend/Middlewares/authMiddleware.js
-
 const jwt = require("jsonwebtoken");
 
 // Se asume que dotenv ya se ha cargado en el punto de entrada principal (server.js)
-// Si es necesario, se puede volver a cargar aquí, pero no es lo ideal
 
 const verifyToken = (req, res, next) => {
   try {

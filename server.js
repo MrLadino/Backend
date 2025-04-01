@@ -62,12 +62,15 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Importar rutas
-const userRoutes = require("./Routes/user");         // Rutas de registro, login, usuario
-app.use("/api", userRoutes);
-
-const authRoutes = require("./Routes/auth");         // Rutas de autenticación (signup, login, forgot/reset, validate)
+// Rutas de autenticación se centralizan en auth.js
+const authRoutes = require("./Routes/auth");
 app.use("/api/auth", authRoutes);
 
+// Otras rutas de usuario (actualización de perfil, eliminar usuario, etc.)
+const userRoutes = require("./Routes/user");
+app.use("/api", userRoutes);
+
+// Rutas de publicidad y productos
 const advertisingRoutes = require("./Routes/advertising");
 app.use("/api/advertising", advertisingRoutes);
 
@@ -138,7 +141,6 @@ app.put("/api/profile", verifyToken, async (req, res) => {
 });
 
 // Ruta para subir archivos/imágenes (con token)
-// Se utiliza BACKEND_URL desde el .env o localhost por defecto para construir la URL de la imagen
 app.post("/api/upload", verifyToken, upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No se subió ninguna imagen." });

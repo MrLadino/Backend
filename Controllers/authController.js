@@ -10,7 +10,7 @@ const { JWT_SECRET = "por_favor_cambia_este_secreto" } = process.env;
 
 /**
  * REGISTRAR UN NUEVO USUARIO
- * POST /api/signup
+ * POST /api/auth/signup
  */
 const registerUser = async (req, res) => {
   try {
@@ -58,7 +58,7 @@ const registerUser = async (req, res) => {
 
 /**
  * INICIAR SESIÓN
- * POST /api/login
+ * POST /api/auth/login
  */
 const loginUser = async (req, res) => {
   try {
@@ -100,7 +100,7 @@ const loginUser = async (req, res) => {
 
 /**
  * OLVIDÉ MI CONTRASEÑA
- * POST /api/forgot-password
+ * POST /api/auth/forgot-password
  */
 const forgotPassword = async (req, res) => {
   try {
@@ -147,7 +147,7 @@ const forgotPassword = async (req, res) => {
 
 /**
  * RESETEAR CONTRASEÑA
- * POST /api/reset-password
+ * POST /api/auth/reset-password
  */
 const resetPassword = async (req, res) => {
   try {
@@ -182,7 +182,7 @@ const resetPassword = async (req, res) => {
 
 /**
  * VERIFICAR CONTRASEÑA
- * POST /api/validate-password
+ * POST /api/auth/validate-password
  */
 const verifyPassword = async (req, res) => {
   try {
