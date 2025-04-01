@@ -8,7 +8,7 @@ const multer = require("multer");
 const fs = require("fs");
 const { verifyToken, verifyAdmin } = require("./Middlewares/authMiddleware");
 
-// Cargar variables de entorno (se usa el .env adecuado para el entorno de despliegue)
+// Cargar variables de entorno
 dotenv.config();
 
 const app = express();
@@ -20,7 +20,7 @@ app.use(helmet());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Configuración de CORS: se utiliza FRONTEND_URL del .env o localhost para desarrollo
+// Configuración de CORS: usar FRONTEND_URL del .env o localhost para desarrollo
 const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 app.use(
   cors({
@@ -30,7 +30,7 @@ app.use(
   })
 );
 
-// (Opcional) Endpoint de Health Check para que Railway verifique la salud del contenedor
+// Endpoint de Health Check (opcional)
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
@@ -62,11 +62,9 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Importar rutas
-// --- Centralizamos la autenticación en auth.js ---
 const authRoutes = require("./Routes/auth");
 app.use("/api/auth", authRoutes);
 
-// Otras rutas (usuarios, publicidad, productos, etc.)
 const userRoutes = require("./Routes/user");
 app.use("/api", userRoutes);
 
@@ -144,7 +142,7 @@ app.post("/api/upload", verifyToken, upload.single("file"), async (req, res) => 
   if (!req.file) {
     return res.status(400).json({ message: "No se subió ninguna imagen." });
   }
-  const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+  const backendUrl = process.env.BACKEND_URL || "https://backend-production-18aa.up.railway.app";
   const imageUrl = `${backendUrl}/uploads/${req.file.filename}`;
   const userId = req.user.user_id;
   try {

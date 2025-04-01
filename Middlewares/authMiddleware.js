@@ -1,7 +1,6 @@
 const jwt = require("jsonwebtoken");
 
 // Se asume que dotenv ya se ha cargado en el punto de entrada principal (server.js)
-
 const verifyToken = (req, res, next) => {
   try {
     let token = req.header("Authorization") || req.query.token;
