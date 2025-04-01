@@ -28,23 +28,19 @@ const registerUser = async (req, res) => {
         return res.status(400).json({ message: "Contraseña de Admin incorrecta." });
       }
     }
-
     // Verificar si el usuario ya existe
     const [[existingUser]] = await db.query("SELECT email FROM users WHERE email = ?", [email]);
     if (existingUser) {
       return res.status(400).json({ message: "El correo ya está registrado." });
     }
-
     // Hashear la contraseña y crear el usuario
     const hashedPassword = await bcrypt.hash(password, 10);
     const [result] = await db.query(
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
       [name, email, hashedPassword, role]
     );
-
     const userId = result.insertId;
     const token = jwt.sign({ user_id: userId, email, role }, JWT_SECRET, { expiresIn: "24h" });
-
     return res.status(201).json({
       message: "Usuario registrado exitosamente.",
       token,
@@ -80,13 +76,11 @@ const loginUser = async (req, res) => {
     if (!validPassword) {
       return res.status(400).json({ message: "Contraseña incorrecta." });
     }
-
     const token = jwt.sign(
       { user_id: user.user_id, email: user.email, role: user.role },
       JWT_SECRET,
       { expiresIn: "30d" }
     );
-
     return res.status(200).json({
       message: "Login exitoso",
       token,
@@ -108,23 +102,19 @@ const forgotPassword = async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: "El correo es obligatorio." });
     }
-
     const [rows] = await db.query("SELECT user_id, email FROM users WHERE email = ?", [email]);
     if (rows.length === 0) {
       return res.status(404).json({ message: "No existe un usuario con ese correo." });
     }
     const user = rows[0];
-
     const token = crypto.randomBytes(20).toString("hex");
     const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
-
     await db.query("INSERT INTO password_resets (user_id, token, expires_at) VALUES (?, ?, ?)", [
       user.user_id,
       token,
       expires,
     ]);
-
-    // Actualizar resetLink para producción (apunta al frontend desplegado)
+    // Enlace de reseteo apuntando al frontend desplegado
     const resetLink = `https://mrladino.github.io/Frontend/reset-password?token=${token}`;
     await sendMail({
       to: email,
@@ -135,7 +125,6 @@ const forgotPassword = async (req, res) => {
         <p>Este enlace expira en 1 hora.</p>
       `,
     });
-
     return res.json({
       message: "Se ha enviado un correo con instrucciones para restablecer tu contraseña.",
     });
@@ -155,24 +144,20 @@ const resetPassword = async (req, res) => {
     if (!token || !newPassword) {
       return res.status(400).json({ message: "Token y nueva contraseña son obligatorios." });
     }
-
     const [rows] = await db.query("SELECT * FROM password_resets WHERE token = ?", [token]);
     if (rows.length === 0) {
       return res.status(400).json({ message: "Token inválido o inexistente." });
     }
     const resetRecord = rows[0];
-
     if (new Date(resetRecord.expires_at) < new Date()) {
       return res.status(400).json({ message: "El token ha expirado." });
     }
-
     if (newPassword.length < 6) {
       return res.status(400).json({ message: "La nueva contraseña debe tener al menos 6 caracteres." });
     }
     const hashed = await bcrypt.hash(newPassword, 10);
     await db.query("UPDATE users SET password = ? WHERE user_id = ?", [hashed, resetRecord.user_id]);
     await db.query("DELETE FROM password_resets WHERE id = ?", [resetRecord.id]);
-
     return res.json({ message: "Contraseña restablecida con éxito." });
   } catch (error) {
     console.error("Error en resetPassword:", error);

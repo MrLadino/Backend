@@ -62,15 +62,14 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Importar rutas
-// Rutas de autenticación se centralizan en auth.js
+// --- Centralizamos la autenticación en auth.js ---
 const authRoutes = require("./Routes/auth");
 app.use("/api/auth", authRoutes);
 
-// Otras rutas de usuario (actualización de perfil, eliminar usuario, etc.)
+// Otras rutas (usuarios, publicidad, productos, etc.)
 const userRoutes = require("./Routes/user");
 app.use("/api", userRoutes);
 
-// Rutas de publicidad y productos
 const advertisingRoutes = require("./Routes/advertising");
 app.use("/api/advertising", advertisingRoutes);
 
