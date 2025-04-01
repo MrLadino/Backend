@@ -8,7 +8,6 @@ const multer = require("multer");
 const fs = require("fs");
 const { verifyToken, verifyAdmin } = require("./Middlewares/authMiddleware");
 
-// Cargar variables de entorno
 dotenv.config();
 
 const app = express();
@@ -20,7 +19,7 @@ app.use(helmet());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
-// Configuración de CORS: se utiliza FRONTEND_URL del .env o localhost para desarrollo
+// Configuración de CORS: usar FRONTEND_URL del .env o localhost para desarrollo
 const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
 app.use(
   cors({
@@ -30,7 +29,7 @@ app.use(
   })
 );
 
-// Endpoint de Health Check (opcional)
+// Endpoint de Health Check
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK" });
 });
@@ -62,10 +61,10 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Importar rutas
-const authRoutes = require("./Routes/auth"); // Rutas de autenticación (signup, login, forgot/reset, validate)
+const authRoutes = require("./Routes/auth");
 app.use("/api/auth", authRoutes);
 
-const userRoutes = require("./Routes/user"); // Rutas de usuario (actualización de perfil, eliminar usuario, etc.)
+const userRoutes = require("./Routes/user");
 app.use("/api", userRoutes);
 
 const advertisingRoutes = require("./Routes/advertising");
@@ -114,17 +113,13 @@ app.put("/api/profile", verifyToken, async (req, res) => {
   const userId = req.user.user_id;
   try {
     await db.query(
-      `UPDATE users 
-       SET name = ?, email = ?, description = ?, phone = ?, profile_photo = ? 
-       WHERE user_id = ?`,
+      `UPDATE users SET name = ?, email = ?, description = ?, phone = ?, profile_photo = ? WHERE user_id = ?`,
       [name, email, description, phone, profile_photo, userId]
     );
     const [existingCompany] = await db.query("SELECT * FROM companies WHERE user_id = ?", [userId]);
     if (existingCompany.length > 0) {
       await db.query(
-        `UPDATE companies 
-         SET name = ?, description = ?, location = ?, phone = ?, photo = ? 
-         WHERE user_id = ?`,
+        `UPDATE companies SET name = ?, description = ?, location = ?, phone = ?, photo = ? WHERE user_id = ?`,
         [companyName, companyDescription, companyLocation, companyPhone, companyPhoto, userId]
       );
     } else {
@@ -141,12 +136,11 @@ app.put("/api/profile", verifyToken, async (req, res) => {
   }
 });
 
-// Ruta para subir archivos/imágenes (con token)
 app.post("/api/upload", verifyToken, upload.single("file"), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: "No se subió ninguna imagen." });
   }
-  const backendUrl = process.env.BACKEND_URL || "http://localhost:5000";
+  const backendUrl = process.env.BACKEND_URL || "https://backend-production-18aa.up.railway.app";
   const imageUrl = `${backendUrl}/uploads/${req.file.filename}`;
   const userId = req.user.user_id;
   try {
@@ -158,7 +152,6 @@ app.post("/api/upload", verifyToken, upload.single("file"), async (req, res) => 
   }
 });
 
-// Rutas para administración de usuarios (ejemplo)
 app.get("/api/users", verifyToken, verifyAdmin, async (req, res) => {
   try {
     const [users] = await db.query("SELECT user_id, name, email, role FROM users");
@@ -187,7 +180,6 @@ app.delete("/api/users/:id", verifyToken, verifyAdmin, async (req, res) => {
   }
 });
 
-// Manejo global de excepciones y rechazos no manejados
 process.on("uncaughtException", (err) => {
   console.error("Excepción no manejada:", err);
 });
@@ -195,7 +187,6 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("Promesa rechazada sin manejar:", reason);
 });
 
-// Iniciar el servidor
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`✅ Servidor corriendo en el puerto ${PORT}`);

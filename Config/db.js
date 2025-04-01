@@ -3,7 +3,6 @@ const dotenv = require('dotenv');
 
 dotenv.config(); // Cargar las variables de entorno
 
-// Crear un pool de conexiones con promesas
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -11,7 +10,7 @@ const pool = mysql.createPool({
     database: process.env.DB_NAME || 'TicProyect',
     port: process.env.DB_PORT || 3307,
     waitForConnections: true,
-    connectionLimit: 10, // Máximo de conexiones simultáneas
+    connectionLimit: 10,
     queueLimit: 0
 });
 
@@ -23,9 +22,8 @@ const pool = mysql.createPool({
         connection.release();
     } catch (error) {
         console.error("❌ Error al conectar a la base de datos:", error.message);
-        process.exit(1); // Salir del proceso si no hay conexión
+        process.exit(1);
     }
 })();
 
-// Exportar el pool para usarlo en otras partes del proyecto
 module.exports = pool;

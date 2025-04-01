@@ -6,7 +6,7 @@ const { sendMail } = require("../utils/emailSender");
 const crypto = require("crypto");
 
 dotenv.config();
-const { JWT_SECRET = "por_favor_cambia_este_secreto" } = process.env;
+const { JWT_SECRET = "por_favor_cambia_este_secreto", ADMIN_CODE = "TicUser001" } = process.env;
 
 /**
  * REGISTRAR UN NUEVO USUARIO
@@ -14,29 +14,40 @@ const { JWT_SECRET = "por_favor_cambia_este_secreto" } = process.env;
  */
 const registerUser = async (req, res) => {
   try {
-    const { name, email, password, role, adminPassword } = req.body;
-    if (!name || !email || !password || !role) {
+    const { name, email, password, confirmPassword, role, adminPassword } = req.body;
+
+    // Validar campos obligatorios
+    if (!name || !email || !password || !confirmPassword || !role) {
       return res.status(400).json({ message: "Todos los campos son obligatorios." });
+    }
+    // Validar confirmación de contraseña
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Las contraseñas no coinciden." });
     }
     if (password.length < 6) {
       return res.status(400).json({ message: "La contraseña debe tener al menos 6 caracteres." });
     }
+    // Si el rol es admin, validar la contraseña de admin
     if (role === "admin") {
-      const ADMIN_CODE = process.env.ADMIN_CODE || "TicUser001";
       if (!adminPassword || adminPassword.trim() !== ADMIN_CODE.trim()) {
         return res.status(400).json({ message: "Contraseña de Admin incorrecta." });
       }
     }
     // Verificar si el usuario ya existe
-    const [[existingUser]] = await db.query("SELECT email FROM users WHERE email = ?", [email]);
-    if (existingUser) {
+    const [existingUsers] = await db.query("SELECT email FROM users WHERE email = ?", [email]);
+    if (existingUsers.length > 0) {
       return res.status(400).json({ message: "El correo ya está registrado." });
     }
-    // Hashear la contraseña y crear el usuario
+    // Hashear la contraseña y, si corresponde, la de admin
     const hashedPassword = await bcrypt.hash(password, 10);
+    let hashedAdminPassword = null;
+    if (role === "admin") {
+      hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
+    }
+    // Insertar usuario en la base de datos
     const [result] = await db.query(
-      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-      [name, email, hashedPassword, role]
+      "INSERT INTO users (name, email, password, role, admin_password) VALUES (?, ?, ?, ?, ?)",
+      [name, email, hashedPassword, role, hashedAdminPassword]
     );
     const userId = result.insertId;
     const token = jwt.sign({ user_id: userId, email, role }, JWT_SECRET, { expiresIn: "24h" });
@@ -58,15 +69,15 @@ const registerUser = async (req, res) => {
 const loginUser = async (req, res) => {
   try {
     const { email, password, role, adminPassword } = req.body;
-    const [[user]] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
-    if (!user) {
+    const [users] = await db.query("SELECT * FROM users WHERE email = ?", [email]);
+    if (users.length === 0) {
       return res.status(400).json({ message: "Usuario no encontrado." });
     }
+    const user = users[0];
     if (user.role !== role) {
       return res.status(403).json({ message: `Rol incorrecto. Tu cuenta está registrada como ${user.role}` });
     }
     if (role === "admin") {
-      const ADMIN_CODE = process.env.ADMIN_CODE || "TicUser001";
       if (!adminPassword || adminPassword.trim() !== ADMIN_CODE.trim()) {
         return res.status(400).json({ message: "Contraseña de Admin incorrecta." });
       }
